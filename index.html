@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A fully responsive whiteboard drawing app with pen, eraser, undo/redo, and save options. Works on desktop and Android.">
+  <meta name="keywords" content="drawing board, whiteboard, HTML5 canvas, online drawing app, responsive sketch pad, Android drawing app, JavaScript paint tool">
+  <meta name="author" content="Your Name">
+  <title>White Drawing Board - Responsive HTML5 Sketch App</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+  <!-- Adsterra Banner Ad (Header) -->
+  <script type="text/javascript">
+    atOptions = {
+      'key' : 'c1dd9c8aecdc126d6af498cee3825ed7',
+      'format' : 'iframe',
+      'height' : 60,
+      'width' : 468,
+      'params' : {}
+    };
+  </script>
+  <script type="text/javascript" src="//www.highperformanceformat.com/c1dd9c8aecdc126d6af498cee3825ed7/invoke.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background: #1e1e2f;
+      color: white;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      font-size: 1.2rem;
+      margin: 0;
+    }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 10px;
+      background: #fff;
+      border-bottom: 1px solid #ccc;
+    }
+    .toolbar > * {
+      padding: 6px 10px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      background: #eee;
+      cursor: pointer;
+    }
+    .toolbar input[type="color"],
+    .toolbar input[type="range"] {
+      padding: 0;
+      cursor: pointer;
+    }
+    .toolbar .active {
+      background: #1e1e2f;
+      color: white;
+    }
+    canvas {
+      flex: 1;
+      background: white;
+      touch-action: none;
+      cursor: crosshair;
+    }
+    .ad-bottom {
+      text-align: center;
+      padding: 8px 0;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>White Drawing Board</h1>
+  </header>
+
+  <div class="toolbar">
+    <button id="penBtn" class="active">Pen</button>
+    <button id="eraserBtn">Eraser</button>
+    <input type="color" id="colorPicker" value="#000000">
+    <input type="range" id="thicknessSlider" min="1" max="30" value="5">
+    <button id="undoBtn">Undo</button>
+    <button id="redoBtn">Redo</button>
+    <button id="clearBtn">Clear</button>
+    <button id="saveBtn">Save</button>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <!-- Adsterra Banner Ad (Bottom) -->
+  <div class="ad-bottom">
+    <script type="text/javascript">
+      atOptions = {
+        'key' : 'c1dd9c8aecdc126d6af498cee3825ed7',
+        'format' : 'iframe',
+        'height' : 60,
+        'width' : 468,
+        'params' : {}
+      };
+    </script>
+    <script type="text/javascript" src="//www.highperformanceformat.com/c1dd9c8aecdc126d6af498cee3825ed7/invoke.js"></script>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+    let erasing = false;
+    let currentColor = '#000000';
+    let lineWidth = 5;
+    let undoStack = [];
+    let redoStack = [];
+
+    function resizeCanvas() {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight - document.querySelector('.toolbar').offsetHeight - document.querySelector('header').offsetHeight - 60;
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function startDrawing(x, y) {
+      drawing = true;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      saveState(undoStack);
+    }
+
+    function draw(x, y) {
+      if (!drawing) return;
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
+
+    function stopDrawing() {
+      if (drawing) {
+        drawing = false;
+        ctx.closePath();
+      }
+    }
+
+    function setDrawingStyle() {
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = erasing ? '#ffffff' : currentColor;
+      ctx.lineWidth = lineWidth;
+    }
+
+    function saveState(stack) {
+      stack.push(canvas.toDataURL());
+      if (stack.length > 50) stack.shift();
+    }
+
+    function restoreState(stackFrom, stackTo) {
+      if (stackFrom.length === 0) return;
+      saveState(stackTo);
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+      };
+      img.src = stackFrom.pop();
+    }
+
+    function getPos(e) {
+      if (e.touches) {
+        return {
+          x: e.touches[0].clientX - canvas.offsetLeft,
+          y: e.touches[0].clientY - canvas.offsetTop
+        };
+      }
+      return {
+        x: e.clientX - canvas.offsetLeft,
+        y: e.clientY - canvas.offsetTop
+      };
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      const {x, y} = getPos(e);
+      setDrawingStyle();
+      startDrawing(x, y);
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      const {x, y} = getPos(e);
+      setDrawingStyle();
+      startDrawing(x, y);
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const {x, y} = getPos(e);
+      draw(x, y);
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const {x, y} = getPos(e);
+      draw(x, y);
+    }, { passive: false });
+
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseleave', stopDrawing);
+    canvas.addEventListener('touchend', stopDrawing);
+
+    document.getElementById('penBtn').addEventListener('click', () => {
+      erasing = false;
+      setActiveTool('penBtn');
+    });
+
+    document.getElementById('eraserBtn').addEventListener('click', () => {
+      erasing = true;
+      setActiveTool('eraserBtn');
+    });
+
+    document.getElementById('colorPicker').addEventListener('input', (e) => {
+      currentColor = e.target.value;
+    });
+
+    document.getElementById('thicknessSlider').addEventListener('input', (e) => {
+      lineWidth = e.target.value;
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      saveState(undoStack);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
+    document.getElementById('undoBtn').addEventListener('click', () => {
+      restoreState(undoStack, redoStack);
+    });
+
+    document.getElementById('redoBtn').addEventListener('click', () => {
+      restoreState(redoStack, undoStack);
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'drawing.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+
+    function setActiveTool(id) {
+      document.querySelectorAll('.toolbar button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+  </script>
+<script type='text/javascript' src='//pl26001956.profitableratecpm.com/b8/51/b1/b851b168b6b96dbdb5b8f98799edaa3b.js'></script>
+</body>
+</html>
